@@ -1,0 +1,47 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  CONTAINER_IMAGE: kavinduchamiran/${CI_COMMIT_REF_NAME}:${CI_COMMIT_SHORT_SHA}
+
+docker_build:
+  image: docker:stable
+
+  services:
+    - docker:dind
+
+  stage: build
+
+  only:
+    - cloudl-server
+    - cloudl-client
+
+  script:
+    - docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}
+    - docker build -t ${CONTAINER_IMAGE} .
+#    - docker tag ${CONTAINER_IMAGE} kavinduchamiran/${CI_COMMIT_REF_NAME}:latest
+    - docker push ${CONTAINER_IMAGE}
+
+kube_deploy:
+  image: lwolf/kubectl_deployer:latest
+
+  stage: deploy
+
+  only:
+    - cloudl-server
+    - cloudl-client
+
+  script:
+    - kubectl config set-cluster cloudl --server="${KUBE_URL}" --certificate-authority="${KUBE_CA_PEM}"
+    - kubectl config set-credentials admin --username="${KUBE_USERNAME}" --password="${KUBE_PASSWORD}"
+    - kubectl config set-context default --cluster=cloudl --user=${KUBE_USERNAME}
+    - kubectl config use-context default
+#    - cd k8s
+#    - kubectl create -f mongodb-pod.yml
+#    - kubectl create -f mongodb-service.yml
+#    - kubectl create -f cloudl-server-service.yml
+#    - kubectl create -f cloudl-server-deployment.yml
+#    - kubectl get pods
+#    - kubectl get svc
+    - kubectl set image deployment/${CI_COMMIT_REF_NAME}-deployment ${CI_COMMIT_REF_NAME}=${CONTAINER_IMAGE}
