@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudl-server-deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cloudl-server
+    spec:
+      containers:
+        - name: cloudl-server
+          image: sajjadhz/cloudl-server:v1
+          ports:
+            - containerPort: 5000
+              name: nodejs-port
+          env:
+            - name: ME_CONFIG_MONGODB_URL
+              valueFrom:
+                configMapKeyRef:
+                  key: ME_CONFIG_MONGODB_URL
+                  name: cloudl-configmap
+                  optional: false
+            - name: ME_CONFIG_MONGODB_ADMINUSERNAME
+              valueFrom:
+                secretKeyRef:
+                  key: mongo-root-username
+                  name: cloudl-secret
+                  optional: false
+            - name: ME_CONFIG_MONGODB_ADMINPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: mongo-root-password
+                  name: cloudl-secret
+                  optional: false   
+  selector:
+    matchLabels:
+      app: cloudl-server
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloudl-server-service
+spec:
+  ports:
+    - port: 5000
+      protocol: TCP
+      targetPort: 5000
+  selector:
+    app: cloudl-server
