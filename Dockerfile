@@ -18,9 +18,10 @@ FROM nginx:1.16.0
 
 COPY --from=build /cloudl-client/build /usr/share/nginx/html
 
-RUN rm /etc/nginx/conf.d/default.conf
+COPY nginx/nginx-default.conf.template /etc/nginx/conf.d/default.conf.template
 
-COPY nginx/nginx.conf /etc/nginx/conf.d
+COPY nginx/docker-entrypoint.sh /cloudl-client/
+ENTRYPOINT ["/cloudl-client/docker-entrypoint.sh"]
 
 EXPOSE 80
 
